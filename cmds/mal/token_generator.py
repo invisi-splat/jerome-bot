@@ -43,7 +43,7 @@ def generate_new_token(authorisation_code: str, code_verifier: str) -> dict:
     response.close()
     print('Token generated successfully!')
 
-    with open('token.json', 'w') as file:
+    with open('../../config/token.json', 'w') as file:
         json.dump(token, file, indent = 4)
         print('Token saved in "token.json"')
 

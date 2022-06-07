@@ -6,7 +6,7 @@ import secrets
 CLIENT_ID = '1f8715ac1db9caf0d35c43809d9e02fa'
 CLIENT_SECRET = '20c6696977545ee3e18baaabf0be11ebdb5406d2197561ccac413a91b67b713c'
 
-with open("./token.json", "r") as data:
+with open("../../token.json", "r") as data:
     token = json.loads(data.read())
     data.close()
 
@@ -25,7 +25,7 @@ token = response.json()
 response.close()
 print('Token generated successfully!')
 
-with open('./token.json', 'w') as file:
+with open('../../config/token.json', 'w') as file:
     json.dump(token, file, indent = 4)
     print('Token saved in "token.json"')
 

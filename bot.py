@@ -38,14 +38,14 @@ async def refresh():
     response.close()
     print('Token generated successfully!')
 
-    with open('./token.json', 'w') as file:
+    with open('.config/token.json', 'w') as file:
         json.dump(token, file, indent = 4)
         print('Token saved in "token.json"')
 
     print(token)
     print("Sleeping for an hour...")
 
-with open("./config.json", "r") as data:
+with open(".config/config.json", "r") as data:
     config = json.loads(data.read())
     data.close()
 
