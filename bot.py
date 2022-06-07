@@ -6,6 +6,8 @@ from discord.ext import commands, tasks
 import asyncio
 import traceback
 import secrets
+import cmds.ping.ping
+import cmds.ping.refresh
 
 CLIENT_ID = '1f8715ac1db9caf0d35c43809d9e02fa'
 CLIENT_SECRET = '20c6696977545ee3e18baaabf0be11ebdb5406d2197561ccac413a91b67b713c'
@@ -18,7 +20,7 @@ client = commands.Bot(command_prefix=["jerome, ", "j "], case_insensitive=True)
 @tasks.loop(seconds=3600)
 async def refresh():
     global TOKEN
-    with open("./token.json", "r") as data:
+    with open("./config/token.json", "r") as data:
         token = json.loads(data.read())
         data.close()
 
@@ -38,14 +40,16 @@ async def refresh():
     response.close()
     print('Token generated successfully!')
 
-    with open('.config/token.json', 'w') as file:
+    with open('./config/token.json', 'w') as file:
         json.dump(token, file, indent = 4)
         print('Token saved in "token.json"')
 
     print(token)
+    cmds.ping.refresh.refresh(client)
     print("Sleeping for an hour...")
 
-with open(".config/config.json", "r") as data:
+
+with open("./config/config_test.json", "r") as data:
     config = json.loads(data.read())
     data.close()
 
@@ -55,6 +59,7 @@ client.remove_command('help')
 async def on_ready():
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='over the server | Type "jerome, help"'))
     print('We have logged in as {0.user}'.format(client))
+    await cmds.ping.refresh.refresh(client)
 
 @client.event
 async def on_message(message):
@@ -207,5 +212,15 @@ async def list(ctx, name=""):
         await error_message(ctx)
         return
 
-refresh.start()
+@client.command(aliases=["q"])
+async def quit(ctx, *, arg):
+    # end bot if admin has perms
+    pass
+
+@client.event
+async def on_message(msg):
+    #cmds.ping.ping.ping(client, msg)
+    await client.process_commands(msg)
+
+#refresh.start()
 client.run(config["token"])
