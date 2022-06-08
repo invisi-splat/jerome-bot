@@ -43,17 +43,21 @@ async def ping(client, msg):
 
 async def fulfil(search_names, names):
     matched = [] # [["invisi.#0561", "Bowen"], 0]
+    print("Attempting to match " + str(search_names) + "...")
     for i in range(len(names)):
         # pass 0: compare directly
-        if search_names[0].lower() == names[i][1].lower():
-            matched.append([names[i], 0])
-            continue
-        elif " ".join(search_names[:1]).lower() == names[i][1].lower():
-            matched.append([names[i], 0])
-            continue
-        elif " ".join(search_names[:2]).lower() == names[i][1].lower():
-            matched.append([names[i], 0])
-            continue
+        try:
+            if search_names[0].lower() == names[i][1].lower():
+                matched.append([names[i], 0])
+                continue
+            elif " ".join(search_names[:1]).lower() == names[i][1].lower():
+                matched.append([names[i], 0])
+                continue
+            elif " ".join(search_names[:2]).lower() == names[i][1].lower():
+                matched.append([names[i], 0])
+                continue
+        except IndexError:
+            pass
 
         try:
             # pass 1: compare directly but reduce surnames on namebase to single letters

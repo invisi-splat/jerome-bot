@@ -45,11 +45,10 @@ async def refresh():
         print('Token saved in "token.json"')
 
     print(token)
-    cmds.ping.refresh.refresh(client)
     print("Sleeping for an hour...")
 
 
-with open("./config/config_test.json", "r") as data:
+with open("./config/config.json", "r") as data:
     config = json.loads(data.read())
     data.close()
 
@@ -223,5 +222,5 @@ async def on_message(msg):
         await cmds.ping.ping.ping(client, msg)
     await client.process_commands(msg)
 
-refresh.start()
+#refresh.start()
 client.run(config["token"])
