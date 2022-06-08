@@ -58,7 +58,7 @@ client.remove_command('help')
 @client.event
 async def on_ready():
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='over the server | Type "jerome, help"'))
-    print('We have logged in as {0.user}'.format(client))
+    print(f'Logged in as {client.user}.')
     await cmds.ping.refresh.refresh(client)
 
 @client.event
@@ -219,8 +219,10 @@ async def quit(ctx, *, arg):
 
 @client.event
 async def on_message(msg):
-    #cmds.ping.ping.ping(client, msg)
-    await client.process_commands(msg)
+    print(msg.clean_content)
+    if "@" in msg.clean_content:
+        await cmds.ping.ping.ping(client, msg)
+    #await client.process_commands(msg)
 
 #refresh.start()
 client.run(config["token"])

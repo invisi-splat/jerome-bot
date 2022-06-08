@@ -2,6 +2,7 @@ import json
 import re
 
 async def refresh(client):
+    print("Refreshing namebase...")
     with open("./config/config_test.json", "r") as data:
         config = data.read()
         config = json.loads(config)
@@ -16,7 +17,6 @@ async def refresh(client):
         matches = re.finditer(r"(?!.*\[left\])^~?~?@(.*?) is a?l?s?o? ?([A-Z'-][a-zA-Z'-]* [A-Z][a-zA-Z'-]*)?(?:([A-Z][a-zA-Z'-]*?)\?? )?([A-Z][a-zA-Z'-]*?\n)?", text, re.MULTILINE)
         for match in matches:
             names = []
-            print(match)
             for groupNum in range(1, len(match.groups()) + 1):
                 names.append(match.group(groupNum).rstrip("\n")) if match.group(groupNum) != None else False
             namebase["names"].append(names)
@@ -24,3 +24,6 @@ async def refresh(client):
     with open("./config/namebase.json", "w") as data:
         data.write(json.dumps(namebase))
         data.close()
+    
+    print("Refreshed namebase.")
+    return True

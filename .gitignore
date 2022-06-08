@@ -163,3 +163,4 @@ cython_debug/
 **/token.json
 **/config.json
 **/config*.json
+**/namebase.json
