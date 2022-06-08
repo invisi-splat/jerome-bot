@@ -1,5 +1,6 @@
 import json
 import re
+import os
 
 async def refresh(client):
     print("Refreshing namebase...")
@@ -11,7 +12,7 @@ async def refresh(client):
     namebase = {"names": []}
     dupe_check = []
 
-    channel = client.get_channel(config["whoswho"])
+    channel = client.get_channel(int(os.environ["whoswho"]))
     messages = await channel.history(limit=5).flatten()
     for message in reversed(messages):
         text = message.content

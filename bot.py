@@ -8,6 +8,7 @@ import traceback
 import secrets
 import cmds.ping.ping
 import cmds.ping.refresh
+import os
 
 CLIENT_ID = '1f8715ac1db9caf0d35c43809d9e02fa'
 CLIENT_SECRET = '20c6696977545ee3e18baaabf0be11ebdb5406d2197561ccac413a91b67b713c'
@@ -28,7 +29,7 @@ async def refresh():
     data = {
         'client_id': CLIENT_ID,
         'client_secret': CLIENT_SECRET,
-        'refresh_token': token["refresh_token"],
+        'refresh_token': os.environ["refresh-token"],
         'grant_type': 'refresh_token'
     }
 
@@ -223,4 +224,4 @@ async def on_message(msg):
     await client.process_commands(msg)
 
 #refresh.start()
-client.run(config["token"])
+client.run(os.environ["token"])
