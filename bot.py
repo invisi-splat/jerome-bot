@@ -44,8 +44,8 @@ async def refresh():
     with open('./config/token.json', 'w') as file:
         json.dump(token, file, indent = 4)
         print('Token saved in "token.json"')
-
     print(token)
+    await cmds.ping.refresh.refresh(client)
     print("Sleeping for an hour...")
 
 
@@ -77,6 +77,8 @@ async def help(ctx):
 \> `searchname <query>`, `sname <query>`, or `sn <query>` - forces name search.
 \> `searchid <query>`, `sid <query>`, or `si <query>` - forces ID search.
 \> `list <username>` or `l <username>` - shows <username>'s list.""", inline=False)
+    embed.add_field(name="Features", value=f"""*Plainping*
+Ever wanted to ping someone but forgot their discord tag? Just type @[real name] and Jerome's expertly curated database pulled from <#{os.environ["whoswho"]}> will ping that user for you!""", inline=False)
     await ctx.send(embed=embed)
 
 async def error_message(ctx):

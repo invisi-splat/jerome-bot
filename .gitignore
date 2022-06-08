@@ -160,7 +160,5 @@ cython_debug/
 #.idea/
 
 .DS_Store
-**/token.json
-**/config.json
-**/config*.json
-**/namebase.json
+**/config_test.json
+**/.env
