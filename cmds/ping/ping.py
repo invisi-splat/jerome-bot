@@ -35,7 +35,7 @@ async def ping(client, msg):
     if hit_list:
         pings = ""
         for target in hit_list:
-            pings += "@" + target[0][1] + " "
+            pings += "<@" + target[0][0] + "> "
         await msg.channel.send(pings)
         return True
     else:
@@ -47,17 +47,22 @@ async def fulfil(search_names, names):
         # pass 0: compare directly
         if search_names[0].lower() == names[i][1].lower():
             matched.append([names[i], 0])
+            continue
         elif " ".join(search_names[:1]).lower() == names[i][1].lower():
             matched.append([names[i], 0])
+            continue
         elif " ".join(search_names[:2]).lower() == names[i][1].lower():
             matched.append([names[i], 0])
+            continue
 
         try:
             # pass 1: compare directly but reduce surnames on namebase to single letters
             if search_names[0].lower() == ((names[i][1].rsplit(" "))[0] + ((names[i][1].rsplit(" "))[1])[0]).lower():
                 matched.append([names[i], 1])
+                continue
             elif " ".join(search_names[:1]).lower() == ((names[i][1].rsplit(" "))[0] + ((names[i][1].rsplit(" "))[1])[0]).lower():
                 matched.append([names[i], 1])
+                continue
         except IndexError:
             pass
 
@@ -65,8 +70,10 @@ async def fulfil(search_names, names):
             # pass 2: compare directly but strip surnames off of namebase
             if search_names[0].lower() == (names[i][1].rsplit(" "))[0].lower():
                 matched.append([names[i], 2])
+                continue
             elif " ".join(search_names[:1]).lower() == (names[i][1].rsplit(" "))[0].lower():
                 matched.append([names[i], 2])
+                continue
         except IndexError:
             pass
 

@@ -219,10 +219,9 @@ async def quit(ctx, *, arg):
 
 @client.event
 async def on_message(msg):
-    print(msg.clean_content)
-    if "@" in msg.clean_content:
+    if "@" in msg.clean_content and msg.author != client.user:
         await cmds.ping.ping.ping(client, msg)
-    #await client.process_commands(msg)
+    await client.process_commands(msg)
 
-#refresh.start()
+refresh.start()
 client.run(config["token"])

@@ -13,8 +13,8 @@ async def refresh(client):
     channel = client.get_channel(983803299209834566)
     messages = await channel.history(limit=5).flatten()
     for message in messages:
-        text = message.clean_content
-        matches = re.finditer(r"(?!.*\[left\])^~?~?@(.*?) is a?l?s?o? ?([A-Z'-][a-zA-Z'-]* [A-Z][a-zA-Z'-]*)?(?:([A-Z][a-zA-Z'-]*?)\?? )?([A-Z][a-zA-Z'-]*?\n)?", text, re.MULTILINE)
+        text = message.content
+        matches = re.finditer(r"(?!.*\[left\])^~?~?<@(\d*?)> is a?l?s?o? ?([A-Z'-][a-zA-Z'-]* [A-Z][a-zA-Z'-]*)?(?:([A-Z][a-zA-Z'-]*?)\?? )?([A-Z][a-zA-Z'-]*?\n)?", text, re.MULTILINE)
         for match in matches:
             names = []
             for groupNum in range(1, len(match.groups()) + 1):
