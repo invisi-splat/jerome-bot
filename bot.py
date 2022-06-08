@@ -224,4 +224,5 @@ async def on_message(msg):
     await client.process_commands(msg)
 
 #refresh.start()
+print(os.environ["token"])
 client.run(os.environ["token"])
