@@ -8,7 +8,41 @@ import cmds.ping.refresh
 import os
 
 def setup(client):
-    print("loading MAL commands...")
+    print("Loading MAL commands...")
+
+    CLIENT_ID = '1f8715ac1db9caf0d35c43809d9e02fa'
+    CLIENT_SECRET = '20c6696977545ee3e18baaabf0be11ebdb5406d2197561ccac413a91b67b713c'
+    TOKEN = {}
+    @tasks.loop(seconds=3600)
+    async def refresh():
+        global TOKEN
+        with open("./config/token.json", "r") as data:
+            token = json.loads(data.read())
+            data.close()
+
+        url = 'https://myanimelist.net/v1/oauth2/token'
+        data = {
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'refresh_token': os.environ["refresh_token"],
+            'grant_type': 'refresh_token'
+        }
+
+        response = requests.post(url, data)
+        response.raise_for_status()  # Check whether the requests contains errors
+
+        token = response.json()
+        TOKEN = token
+        response.close()
+        print('Token generated successfully!')
+
+        with open('./config/token.json', 'w') as file:
+            json.dump(token, file, indent = 4)
+            print('Token saved in "token.json"')
+        await cmds.ping.refresh.refresh(client)
+        print("Sleeping for an hour...")
+
+
     class MAL(commands.Cog):
         def __init__(self, client):
             self.client = client
@@ -145,5 +179,6 @@ def setup(client):
                 print(traceback.format_exc())
                 await self.error_message(ctx)
                 return
-
+    #refresh.start()
     client.add_cog(MAL(client))
+    print("Loaded MAL.")

@@ -3,6 +3,20 @@ from discord.ext import commands
 import sqlite3
 
 def setup(client):
+
+    print("Loading user channels...")
+
+    # Verify database.
+
+    """
+    con = sqlite3.connect("./data/user_channels.db")
+    cur = con.cursor()
+
+    try:
+        cur.execute("SELECT * FROM user_channels")
+    except sqlite3.OperationalError:
+        cur.execute("CREATE TABLE user_channels ()")
+    """
     class UserChannels(commands.Cog):
         def __init__(self, client):
             self.client = client
@@ -67,3 +81,5 @@ def setup(client):
             return
 
     client.add_cog(UserChannels(client))
+
+    print("Loaded user channels.")

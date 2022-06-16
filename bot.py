@@ -3,44 +3,21 @@ import sys
 import json
 import discord
 from discord.ext import commands, tasks
-import asyncio
-import traceback
-import secrets
 import cmds.ping.ping
 import cmds.ping.refresh
 import os
+import asyncio
+import traceback
+import secrets
 
-CLIENT_ID = '1f8715ac1db9caf0d35c43809d9e02fa'
-CLIENT_SECRET = '20c6696977545ee3e18baaabf0be11ebdb5406d2197561ccac413a91b67b713c'
-TOKEN = {}
-@tasks.loop(seconds=3600)
-async def refresh():
-    global TOKEN
-    with open("./config/token.json", "r") as data:
-        token = json.loads(data.read())
-        data.close()
+# Check environment variables
 
-    url = 'https://myanimelist.net/v1/oauth2/token'
-    data = {
-        'client_id': CLIENT_ID,
-        'client_secret': CLIENT_SECRET,
-        'refresh_token': os.environ["refresh_token"],
-        'grant_type': 'refresh_token'
-    }
-
-    response = requests.post(url, data)
-    response.raise_for_status()  # Check whether the requests contains errors
-
-    token = response.json()
-    TOKEN = token
-    response.close()
-    print('Token generated successfully!')
-
-    with open('./config/token.json', 'w') as file:
-        json.dump(token, file, indent = 4)
-        print('Token saved in "token.json"')
-    await cmds.ping.refresh.refresh(client)
-    print("Sleeping for an hour...")
+for i in ["token", "whoswho", "refresh_token", "user_channel_category"]:
+    try:
+        os.environ[i]
+    except KeyError:
+        print("Missing " + i + ". Terminating bot.")
+        quit()
 
 
 statusify = {"watching": "Watching", "completed": "Completed", "on_hold": "On Hold", "dropped": "Dropped", "plan_to_watch": "Plan to Watch"}
@@ -57,8 +34,10 @@ client.remove_command('help')
 async def on_ready():
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='over the server | Type "jerome, help"'))
     print(f'Logged in as {client.user}.')
+    client.load_extension("cmds.mal.mal")
+    client.load_extension("cmds.user_channels.user_channels")
     await cmds.ping.refresh.refresh(client)
-    #await refresh()
+    
 
 
 @client.event
@@ -106,7 +85,6 @@ async def on_message(msg):
         await cmds.ping.ping.ping(client, msg)
     await client.process_commands(msg)
 
-#refresh.start()
-client.load_extension("cmds.mal.mal")
-client.load_extension("cmds.user_channels.user_channels")
+
+
 client.run(os.environ["token"])
