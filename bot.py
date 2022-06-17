@@ -22,7 +22,10 @@ for i in ["token", "whoswho", "refresh_token", "user_channel_category", "default
 
 statusify = {"watching": "Watching", "completed": "Completed", "on_hold": "On Hold", "dropped": "Dropped", "plan_to_watch": "Plan to Watch"}
 
-client = commands.Bot(command_prefix=["jerome, ", "j "], owner_ids=[458304698827669536, 583832173048496129], case_insensitive=True)
+intents = discord.Intents.default()
+intents.members = True
+
+client = commands.Bot(command_prefix=["jerome, ", "j "], owner_ids=[458304698827669536, 583832173048496129], case_insensitive=True, intents=intents)
 
 with open("./config/config.json", "r") as data:
     config = json.loads(data.read())

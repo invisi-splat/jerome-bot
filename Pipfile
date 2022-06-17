@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 requests = "*"
 "discord.py" = "*"
+chat-exporter = "*"
 
 [dev-packages]
 

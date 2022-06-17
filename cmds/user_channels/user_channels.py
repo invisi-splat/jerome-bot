@@ -37,13 +37,14 @@ def setup(client):
 
         async def broadcast(self, type, ctx, channel):
             if type == "delete":
-                print(channel.members) # fix this (intents)
                 for member in channel.members:
-                    print(member.id)
                     try:
-                        await member.send(embed=discord.Embed(title="A user channel you were part of has been deleted", description=f"This is a friendly message to let you know that one of the owners of {channel.name}, {ctx.author.name}, has deleted that user channel. As a result, you won't be able to see any messages sent in that channel - nor will anyone, in fact! It's all lost to the void now."))
+                        if not member.bot: await member.send(embed=discord.Embed(title="A user channel you were part of has been deleted", description=f"This is a friendly message to let you know that {ctx.author.name}, has deleted {channel.name}. As a result, you won't be able to see any messages sent in that channel - nor will anyone, in fact! It's all lost to the void now."))
                     except discord.errors.HTTPException:
-                        await client.get_channel(int(os.environ["default_channel"])).send(embed=discord.Embed(title="A user channel you were part of has been deleted", description=f"<#{member.id}>This is a friendly message to let you know that one of the owners of {channel.name}, <#{ctx.author.id}>, has deleted that user channel. As a result, you won't be able to see any messages sent in that channel - nor will anyone, in fact! It's all lost to the void now."))
+                        await client.get_channel(int(os.environ["default_channel"])).send(embed=discord.Embed(title="A user channel you were part of has been deleted", description=f"""<@{member.id}> This is a friendly message to let you know that {ctx.author.name}, has deleted {channel.name}. As a result, you won't be able to see any messages sent in that channel - nor will anyone, in fact! It's all lost to the void now.
+This message was sent here because there was an error DMing you."""))
+                    except AttributeError:
+                        continue
             elif type == "archive-auto":
                 for member in channel.members:
                     await member.send(embed=discord.Embed(title="A user channel you were part of has been archived", description=f"The user channel {channel.name} has not seen any activity for over a week, and so it has been automatically archived. Don't worry - you can download all of the messages by clicking on the following link (if you so wish): "))
@@ -59,17 +60,22 @@ def setup(client):
         async def create(self, ctx, *args):
             print("Recieved create command.")
             args = list(args)
-            if args[1] == "as":
-                args.pop(1)
-            if args[1] == "text":
+            try:
+                if args[1] == "as":
+                    args.pop(1)
+                if args[1] == "text":
+                    new_channel = await self.category.create_text_channel(args[0], reason=f"User channel created by {ctx.author.name}")
+                    await new_channel.set_permissions(ctx.guild.default_role, read_messages=False, send_messages=False)
+                    await new_channel.set_permissions(ctx.author, read_messages=True, send_messages=True)
+                elif args[1] == "voice":
+                    new_channel = await self.category.create_voice_channel(args[0], reason=f"User channel created by {ctx.author.name}")
+                    await new_channel.set_permissions(ctx.guild.default_role, view_channel=False, send_messages=False, connect=False)
+                    await new_channel.set_permissions(ctx.author, view_channel=True, send_messages=True, connect=True)
+                await ctx.send(embed=discord.Embed(title="User channel created!", description=f"Go check it out at <#{new_channel.id}>!"))
+            except IndexError:
                 new_channel = await self.category.create_text_channel(args[0], reason=f"User channel created by {ctx.author.name}")
                 await new_channel.set_permissions(ctx.guild.default_role, read_messages=False, send_messages=False)
                 await new_channel.set_permissions(ctx.author, read_messages=True, send_messages=True)
-            elif args[1] == "voice":
-                new_channel = await self.category.create_voice_channel(args[0], reason=f"User channel created by {ctx.author.name}")
-                await new_channel.set_permissions(ctx.guild.default_role, view_channel=False, send_messages=False, connect=False)
-                await new_channel.set_permissions(ctx.author, view_channel=True, send_messages=True, connect=True)
-            await ctx.send(embed=discord.Embed(title="User channel created!", description=f"Go check it out at <#{new_channel.id}>!"))
             cur.execute(f"INSERT INTO ownership VALUES ({new_channel.id}, {ctx.author.id})")
             con.commit()
             print(f"Created a new user channel: {args[0]} by {ctx.author.name}")
