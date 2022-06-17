@@ -12,7 +12,7 @@ import secrets
 
 # Check environment variables
 
-for i in ["token", "whoswho", "refresh_token", "user_channel_category"]:
+for i in ["token", "whoswho", "refresh_token", "user_channel_category", "default_channel", "jeromes"]:
     try:
         os.environ[i]
     except KeyError:
@@ -22,7 +22,7 @@ for i in ["token", "whoswho", "refresh_token", "user_channel_category"]:
 
 statusify = {"watching": "Watching", "completed": "Completed", "on_hold": "On Hold", "dropped": "Dropped", "plan_to_watch": "Plan to Watch"}
 
-client = commands.Bot(command_prefix=["jerome, ", "j "], owner_id = 458304698827669536, case_insensitive=True)
+client = commands.Bot(command_prefix=["jerome, ", "j "], owner_ids=[458304698827669536, 583832173048496129], case_insensitive=True)
 
 with open("./config/config.json", "r") as data:
     config = json.loads(data.read())
@@ -64,12 +64,14 @@ Ever wanted to ping someone but forgot their discord tag? Just type @[real name]
 @client.command()
 @commands.is_owner()
 async def reload(ctx):
+    print("Reload command received!")
     try:
         client.reload_extension("cmds.mal.mal")
         client.reload_extension("cmds.user_channels.user_channels")
     except Exception as e:
         await ctx.send('\N{PISTOL}')
         await ctx.send('{}: {}'.format(type(e).__name__, e))
+        print(e)
     else:
         await ctx.send('\N{OK HAND SIGN}')
 
