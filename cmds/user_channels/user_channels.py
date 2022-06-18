@@ -3,6 +3,8 @@ from discord.ext import commands
 from discord.utils import get
 import sqlite3
 import os
+import chat_exporter
+import io
 
 def setup(client):
 
@@ -35,7 +37,7 @@ def setup(client):
         
         # Notification
 
-        async def broadcast(self, type, ctx, channel):
+        async def broadcast(self, type, ctx, channel, transcript=None):
             if type == "delete":
                 for member in channel.members:
                     try:
@@ -47,11 +49,35 @@ This message was sent here because there was an error DMing you."""))
                         continue
             elif type == "archive-auto":
                 for member in channel.members:
-                    await member.send(embed=discord.Embed(title="A user channel you were part of has been archived", description=f"The user channel {channel.name} has not seen any activity for over a week, and so it has been automatically archived. Don't worry - you can download all of the messages by clicking on the following link (if you so wish): "))
+                    transcript_file = discord.File(
+                        io.BytesIO(transcript.encode()),
+                        filename=f"archive-auto-{channel.name}.html",
+                    )
+                    try:
+                        if not member.bot: await member.send(file=transcript_file, embed=discord.Embed(title="A user channel you were part of has been archived", description=f"The user channel {channel.name} has not seen any activity for over a week, and so it has been automatically archived. Don't worry - you can download all of the messages by downloading the HTML file above."))
+                    except AttributeError:
+                        continue
             elif type == "archive-man":
                 for member in channel.members:
-                    await member.send(embed=discord.Embed(title="A user channel you were part of has been archived", description=f"Just a friendly message to inform you that one of the owners of {channel.name}, {ctx.author.name}, has archived that user channel. You can download all of the messages by clicking on the following link (if you so wish): "))
+                    transcript_file = discord.File(
+                        io.BytesIO(transcript.encode()),
+                        filename=f"archive-man-{channel.name}.html",
+                    )
+                    try:
+                        if not member.bot: await member.send(file=transcript_file, embed=discord.Embed(title="A user channel you were part of has been archived", description=f"Just a friendly message to inform you that one of the owners of {channel.name}, {ctx.author.name}, has archived that user channel. You can download all of the messages by downloading the HTML file above."))
+                    except AttributeError:
+                        continue
+                
             return
+
+        # Self explanatory I hope
+
+        async def get_archive(self, channel):
+            transcript = await chat_exporter.export(channel)
+            if transcript is None:
+                return None
+            
+            return transcript
 
 
         # Channel creation and deletion
@@ -82,8 +108,32 @@ This message was sent here because there was an error DMing you."""))
             return
         
         @commands.command()
-        async def archive(self, ctx, *, arg):
-            return
+        async def archive(self, ctx, *args):
+            print("Received archive command.")
+            if not args:
+                await ctx.send(embed=discord.Embed(title="Error", description="No channel specified. (Tag the channel you wish to archive.)").set_footer(text="ARCHIVE_NO_ARG"))
+                return
+            try:
+                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={int(args[0][2:-1])}")
+            except sqlite3.OperationalError:
+                await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="ARCHIVE_SQL_FAIL"))
+                return
+            if str(ctx.author.id) not in owners.fetchall()[0]:
+                await ctx.send(embed=discord.Embed(title="Error", description="You are not the owner of this channel.").set_footer(text="ARCHIVE_INSIG_PERMS"))
+                return
+            else:
+                target = client.get_channel(int(args[0][2:-1]))
+                async with ctx.typing():
+                    transcript = await self.get_archive(target)
+                if transcript:
+                    await self.broadcast("archive-man", ctx, target, transcript)
+                    await target.delete(reason="User generated channel archived") # strip tag
+                    cur.execute(f"DELETE FROM ownership WHERE channel={int(args[0][2:-1])}")
+                    cur.execute(f"DELETE FROM channel_links WHERE channel={int(args[0][2:-1])}")
+                    con.commit()
+                    return
+                else:
+                    await ctx.send(embed=discord.Embed(title="Error", description="Archive failed. Please contact Bowen about this!").set_footer(text="ARCHIVE_NO_TRANSCRIPT"))          
         
         @commands.command()
         async def delete(self, ctx, *args):
