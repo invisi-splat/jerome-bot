@@ -165,8 +165,41 @@ This message was sent here because there was an error DMing you."""))
         # Owner management
 
         @commands.command()
-        async def transfer(self, ctx, *, arg):
-            return
+        async def transfer(self, ctx, *args):
+            if not args:
+                await ctx.send(embed=discord.Embed(title="Error", description="No user provided. (Ping the new owner!)").set_footer(text="TRANSFER_NO_ARG"))
+                return                
+            try:
+                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
+            except sqlite3.OperationalError:
+                await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="REMOVE_SQL_FAIL"))
+                return
+            if str(ctx.author.id) not in owners.fetchall()[0]:
+                await ctx.send(embed=discord.Embed(title="Error", description="You are not the owner of this channel.").set_footer(text="REMOVE_INSIG_PERMS"))
+                return
+            else:
+                matt_hancock = args[0][2:-1] # ty addison
+                if "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=_+[]{};':\",.<>/?" not in matt_hancock: # i'm fucking lazy
+                    cur.execute(f"INSERT INTO ownership VALUES ({ctx.channel.id}, {matt_hancock})")
+                    cur.execute(f"DELETE FROM ownership WHERE channel = {ctx.channel.id} AND owner = {ctx.author.id}")
+                    con.commit()
+                    await ctx.send(embed=discord.Embed(title="Vive la France !", description=f"""Ownership of <#{ctx.channel.id}> transferred from <@{ctx.author.id}> to <@{matt_hancock}>
+Allons enfant de la patrie
+Le jour de gloire (le jour de gloire) est arrivé (est arrivé)
+Contre nous de la tyrannie
+L'étendart sanglant est levé
+L'étendart sanglant est levé
+Entendez-vous dans vos campagnes
+Mugir ces féroces (soldats) soldats
+Ils viennent jusque dans vos bras
+Égorger vos fils et vos compagnes
+"""))
+                    await ctx.author.send(embed=discord.Embed(title="You have transferred your power", description=f"You have transferred your ownership of {ctx.channel.name} to {client.get_user(matt_hancock).name}. Vive la révolution !!"))
+                    await client.get_user(matt_hancock).send(embed=discord.Embed(title="You have been transferred power", description=f"You have been transferred ownership of {ctx.channel.name} from {ctx.author.name}. Vive la révolution !!"))
+                else:
+                    await ctx.send(embed=discord.Embed(title="Error", description="Invalid user. (Ping the new owner!)").set_footer(text="TRANSFER_INV_USER"))
+                return
+                
 
         @commands.command()
         async def promote(self, ctx, *, arg):
@@ -212,7 +245,7 @@ This message was sent here because there was an error DMing you."""))
         async def remove(self, ctx, *args):
             print("Remove command received.")
             if not args:
-                await ctx.send(embed=discord.Embed(title="Error", description="No user provided. Use the target user's full discord tag (e.g. invisi.#0561)").set_footer(text="REMOVE_NO_ARG"))
+                await ctx.send(embed=discord.Embed(title="Error", description="No user provided. Tag the user!").set_footer(text="REMOVE_NO_ARG"))
                 return
             try:
                 owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
@@ -223,11 +256,11 @@ This message was sent here because there was an error DMing you."""))
                 await ctx.send(embed=discord.Embed(title="Error", description="You are not the owner of this channel.").set_footer(text="REMOVE_INSIG_PERMS"))
                 return
             else:
-                tag = re.search(r"(.*)#([0-9]{4})", args[0])
-                if not tag:
-                    await ctx.send(embed=discord.Embed(title="Error", description="Invalid tag. Use the target user's full discord tag (e.g. invisi.#0561)").set_footer(text="REMOVE_REGEX_FAIL"))
+                tag = args[0][2:-1]
+                if "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=_+[]{};':\",.<>/?" in tag:
+                    await ctx.send(embed=discord.Embed(title="Error", description="Invalid tag. Tag the user!").set_footer(text="REMOVE_REGEX_FAIL"))
                     return
-                user = discord.utils.get(ctx.guild.members, name=tag.groups()[0], discriminator=tag.groups()[1])
+                user = client.get_user(int(tag))
                 if ctx.channel.type == discord.ChannelType.text:
                     await ctx.channel.set_permissions(user, read_messages=False, send_messages=False)
                 elif ctx.channel.type == discord.ChannelType.voice:
