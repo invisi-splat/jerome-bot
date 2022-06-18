@@ -194,11 +194,47 @@ This message was sent here because there was an error DMing you."""))
             elif ctx.channel.type == discord.ChannelType.voice:
                 await ctx.channel.set_permissions(user, view_channel=True, send_messages=True, connect=True)
             await ctx.send(embed=discord.Embed(title="A new member joins the party!", description=f"<@{ctx.author.id}> has added <@{user.id}> to this user channel. Say hi!"))
-            await user.send(embed=discord.Embed(title="You have been added to a new user channel", description=f"Your time has come - {ctx.author.name} has added you to {ctx.channel.name}."))
-        
-        @commands.command(aliases=["r"])
-        async def remove(self, ctx, *, arg):
+            await user.send(embed=discord.Embed(title="You have been added to a new user channel", description=f"Your time has come: {ctx.author.name} has added you to {ctx.channel.name}."))
             return
+        
+        @commands.command(aliases=["lv"])
+        async def leave(self, ctx):
+            print("Leave command received.")
+            if ctx.channel.type == discord.ChannelType.text:
+                await ctx.channel.set_permissions(ctx.author, read_messages=False, send_messages=False)
+            elif ctx.channel.type == discord.ChannelType.voice:
+                await ctx.channel.set_permissions(ctx.author, view_channel=False, send_messages=False, connect=False)
+            await ctx.send(embed=discord.Embed(title="Someone just left...", description=f"<@{ctx.author.id}> has left the user channel. Damn."))
+            await ctx.author.send(embed=discord.Embed(title="You have left a user channel", description=f"You have voluntarily left {ctx.channel.name}. I hope that was the right decision!"))
+            return
+
+        @commands.command(aliases=["r"])
+        async def remove(self, ctx, *args):
+            print("Remove command received.")
+            if not args:
+                await ctx.send(embed=discord.Embed(title="Error", description="No user provided. Use the target user's full discord tag (e.g. invisi.#0561)").set_footer(text="REMOVE_NO_ARG"))
+                return
+            try:
+                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
+            except sqlite3.OperationalError:
+                await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="REMOVE_SQL_FAIL"))
+                return
+            if str(ctx.author.id) not in owners.fetchall()[0]:
+                await ctx.send(embed=discord.Embed(title="Error", description="You are not the owner of this channel.").set_footer(text="REMOVE_INSIG_PERMS"))
+                return
+            else:
+                tag = re.search(r"(.*)#([0-9]{4})", args[0])
+                if not tag:
+                    await ctx.send(embed=discord.Embed(title="Error", description="Invalid tag. Use the target user's full discord tag (e.g. invisi.#0561)").set_footer(text="REMOVE_REGEX_FAIL"))
+                    return
+                user = discord.utils.get(ctx.guild.members, name=tag.groups()[0], discriminator=tag.groups()[1])
+                if ctx.channel.type == discord.ChannelType.text:
+                    await ctx.channel.set_permissions(user, read_messages=False, send_messages=False)
+                elif ctx.channel.type == discord.ChannelType.voice:
+                    await ctx.channel.set_permissions(user, view_channel=False, send_messages=False, connect=False)
+                await ctx.send(embed=discord.Embed(title="Off they go!", description=f"<@{ctx.author.id}> has removed <@{user.id}> from this user channel. Discord admin moment."))
+                await user.send(embed=discord.Embed(title="You have been removed from a user channel", description=f"Judgement day: {ctx.author.name} has removed you from {ctx.channel.name}. Yikes."))
+                return
 
 
         # Property management
