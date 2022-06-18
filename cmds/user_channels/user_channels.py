@@ -5,6 +5,7 @@ import sqlite3
 import os
 import chat_exporter
 import io
+import re
 
 def setup(client):
 
@@ -85,6 +86,9 @@ This message was sent here because there was an error DMing you."""))
         @commands.command(aliases=["cr"])
         async def create(self, ctx, *args):
             print("Recieved create command.")
+            if not args:
+                await ctx.send(embed=discord.Embed(title="Error", description="No arguments provided. I'm not smart enough to come up with channel names myself!").set_footer(text="CREATE_NO_ARG"))
+                return
             args = list(args)
             try:
                 if args[1] == "as":
@@ -98,7 +102,7 @@ This message was sent here because there was an error DMing you."""))
                     await new_channel.set_permissions(ctx.guild.default_role, view_channel=False, send_messages=False, connect=False)
                     await new_channel.set_permissions(ctx.author, view_channel=True, send_messages=True, connect=True)
                 await ctx.send(embed=discord.Embed(title="User channel created!", description=f"Go check it out at <#{new_channel.id}>!"))
-            except IndexError:
+            except IndexError: # create text channel by default
                 new_channel = await self.category.create_text_channel(args[0], reason=f"User channel created by {ctx.author.name}")
                 await new_channel.set_permissions(ctx.guild.default_role, read_messages=False, send_messages=False)
                 await new_channel.set_permissions(ctx.author, read_messages=True, send_messages=True)
@@ -175,8 +179,22 @@ This message was sent here because there was an error DMing you."""))
         # User management
 
         @commands.command(aliases=["a"])
-        async def add(self, ctx, *, arg):
-            return
+        async def add(self, ctx, *args):
+            print("Add command received.")
+            if not args:
+                await ctx.send(embed=discord.Embed(title="Error", description="No user provided. Use the target user's full discord tag (e.g. invisi.#0561)").set_footer(text="ADD_NO_ARG"))
+                return
+            tag = re.search(r"(.*)#([0-9]{4})", args[0])
+            if not tag:
+                await ctx.send(embed=discord.Embed(title="Error", description="Invalid tag. Use the target user's full discord tag (e.g. invisi.#0561)").set_footer(text="ADD_REGEX_FAIL"))
+                return
+            user = discord.utils.get(ctx.guild.members, name=tag.groups()[0], discriminator=tag.groups()[1])
+            if ctx.channel.type == discord.ChannelType.text:
+                await ctx.channel.set_permissions(user, read_messages=True, send_messages=True)
+            elif ctx.channel.type == discord.ChannelType.voice:
+                await ctx.channel.set_permissions(user, view_channel=True, send_messages=True, connect=True)
+            await ctx.send(embed=discord.Embed(title="A new member joins the party!", description=f"<@{ctx.author.id}> has added <@{user.id}> to this user channel. Say hi!"))
+            await user.send(embed=discord.Embed(title="You have been added to a new user channel", description=f"Your time has come - {ctx.author.name} has added you to {ctx.channel.name}."))
         
         @commands.command(aliases=["r"])
         async def remove(self, ctx, *, arg):

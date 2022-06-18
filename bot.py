@@ -40,8 +40,6 @@ async def on_ready():
     client.load_extension("cmds.mal.mal")
     client.load_extension("cmds.user_channels.user_channels")
     await cmds.ping.refresh.refresh(client)
-    
-
 
 @client.event
 async def on_message(message):
@@ -89,7 +87,5 @@ async def on_message(msg):
     if "@" in msg.clean_content and msg.author != client.user:
         await cmds.ping.ping.ping(client, msg)
     await client.process_commands(msg)
-
-
 
 client.run(os.environ["token"])
