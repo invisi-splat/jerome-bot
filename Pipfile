@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 requests = "*"
 "discord.py" = "*"
+chat-exporter = "==1.7.3"
+psycopg2-binary = "*"
 
 [dev-packages]
 

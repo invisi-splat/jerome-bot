@@ -13,7 +13,7 @@ async def ping(client, msg):
         namebase = json.loads(data.read())
         data.close()
 
-    matches = re.finditer(r"@((?:\w+ ?){1,3})", msg.content)
+    matches = re.finditer(r"(?<!<)@((?:\w+ ?){1,3})", msg.content)
     hit_list = []
     for match in matches:
         for groupNum in range(1, len(match.groups()) + 1):
