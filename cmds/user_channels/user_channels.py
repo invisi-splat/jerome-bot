@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord.utils import get
-import sqlite3
+import psycopg2
 import os
 import chat_exporter
 import io
@@ -13,13 +13,16 @@ def setup(client):
 
     # Database init
 
-    con = sqlite3.connect("./data/user_channels.db")
+    DATABASE_URL = os.environ['DATABASE_URL']
+
+    con = psycopg2.connect(DATABASE_URL, sslmode='require')
     cur = con.cursor()
 
     try:
         cur.execute("SELECT * FROM ownership")
         cur.execute("SELECT * FROM channel_links")
-    except sqlite3.OperationalError:
+    except psycopg2.Error:
+        con.rollback()
         print("No tables found. Creating table")
         cur.execute("CREATE TABLE ownership (channel CHAR(255), owner CHAR(255))")
         cur.execute("CREATE TABLE channel_links (channel CHAR(255), chain CHAR(255))")
@@ -89,6 +92,17 @@ This message was sent here because there was an error DMing you."""))
             if not args:
                 await ctx.send(embed=discord.Embed(title="Error", description="No arguments provided. I'm not smart enough to come up with channel names myself!").set_footer(text="CREATE_NO_ARG"))
                 return
+            try:
+                cur.execute(f"SELECT channel FROM ownership WHERE owner='{ctx.author.id}'")
+            except psycopg2.Error as e:
+                con.rollback()
+                print(e)
+                await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="CREATE_SQL_FAIL"))
+                return
+            if cur:
+                if len(list(cur)) >= 5:
+                    await ctx.send(embed=discord.Embed(title="Error", description="You've reached your max channel cap of 5. Don't be greedy!").set_footer(text="CREATE_CHANNEL_CAP"))
+                    return
             args = list(args)
             try:
                 if args[1] == "as":
@@ -105,7 +119,7 @@ This message was sent here because there was an error DMing you."""))
                 new_channel = await self.category.create_text_channel(args[0], reason=f"User channel created by {ctx.author.name}#{ctx.author.discriminator}")
                 await new_channel.set_permissions(ctx.guild.default_role, read_messages=False, send_messages=False)
                 await new_channel.set_permissions(ctx.author, read_messages=True, send_messages=True)
-            cur.execute(f"INSERT INTO ownership VALUES ({new_channel.id}, {ctx.author.id})")
+            cur.execute(f"INSERT INTO ownership VALUES ('{new_channel.id}', '{ctx.author.id}')")
             con.commit()
             print(f"Created a new user channel: {args[0]} by {ctx.author.name}#{ctx.author.discriminator}")
             await ctx.send(embed=discord.Embed(title="User channel created!", description=f"Go check it out at <#{new_channel.id}>!"))
@@ -118,11 +132,12 @@ This message was sent here because there was an error DMing you."""))
                 await ctx.send(embed=discord.Embed(title="Error", description="No channel specified. (Tag the channel you wish to archive.)").set_footer(text="ARCHIVE_NO_ARG"))
                 return
             try:
-                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={int(args[0][2:-1])}")
-            except sqlite3.OperationalError:
+                cur.execute(f"SELECT owner FROM ownership WHERE channel='{int(args[0][2:-1])}'")
+            except psycopg2.Error:
+                con.rollback()
                 await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="ARCHIVE_SQL_FAIL"))
                 return
-            if str(ctx.author.id) not in sum(list(owners), ()):
+            if str(ctx.author.id) not in [s.strip() for s in sum(list(cur), ())]:
                 await ctx.send(embed=discord.Embed(title="Error", description="You're not the owner of this channel.").set_footer(text="ARCHIVE_INSIG_PERMS"))
                 return
             else:
@@ -132,8 +147,8 @@ This message was sent here because there was an error DMing you."""))
                 if transcript:
                     await self.broadcast("archive-man", ctx, target, transcript)
                     await target.delete(reason="User generated channel archived") # strip tag
-                    cur.execute(f"DELETE FROM ownership WHERE channel={int(args[0][2:-1])}")
-                    cur.execute(f"DELETE FROM channel_links WHERE channel={int(args[0][2:-1])}")
+                    cur.execute(f"DELETE FROM ownership WHERE channel='{int(args[0][2:-1])}'")
+                    cur.execute(f"DELETE FROM channel_links WHERE channel='{int(args[0][2:-1])}'")
                     con.commit()
                     return
                 else:
@@ -146,19 +161,20 @@ This message was sent here because there was an error DMing you."""))
                 await ctx.send(embed=discord.Embed(title="Error", description="No channel specified. (Tag the channel you wish to delete.)").set_footer(text="DELETE_NO_ARG"))
                 return
             try:
-                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={int(args[0][2:-1])}")
-            except sqlite3.OperationalError:
+                cur.execute(f"SELECT owner FROM ownership WHERE channel='{int(args[0][2:-1])}'")
+            except psycopg2.Error:
+                con.rollback()
                 await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="DELETE_SQL_FAIL"))
                 return
-            if str(ctx.author.id) not in sum(list(owners), ()):
+            if str(ctx.author.id) not in [s.strip() for s in sum(list(cur), ())]:
                 await ctx.send(embed=discord.Embed(title="Error", description="You're not the owner of this channel.").set_footer(text="DELETE_INSIG_PERMS"))
                 return
             else:
                 target = client.get_channel(int(args[0][2:-1]))
                 await self.broadcast("delete", ctx, target)
                 await target.delete(reason="User generated channel deleted") # strip tag
-                cur.execute(f"DELETE FROM ownership WHERE channel={int(args[0][2:-1])}")
-                cur.execute(f"DELETE FROM channel_links WHERE channel={int(args[0][2:-1])}")
+                cur.execute(f"DELETE FROM ownership WHERE channel='{int(args[0][2:-1])}'")
+                cur.execute(f"DELETE FROM channel_links WHERE channel='{int(args[0][2:-1])}'")
                 con.commit()
                 return
 
@@ -170,18 +186,19 @@ This message was sent here because there was an error DMing you."""))
                 await ctx.send(embed=discord.Embed(title="Error", description="No user provided. (Ping the new owner!)").set_footer(text="TRANSFER_NO_ARG"))
                 return                
             try:
-                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
-            except sqlite3.OperationalError:
+                cur.execute(f"SELECT owner FROM ownership WHERE channel='{ctx.channel.id}'")
+            except psycopg2.Error:
+                con.rollback()
                 await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="TRANSFER_SQL_FAIL"))
                 return
-            if str(ctx.author.id) not in sum(list(owners), ()):
+            if str(ctx.author.id) not in [s.strip() for s in sum(list(cur), ())]:
                 await ctx.send(embed=discord.Embed(title="Error", description="You're not the owner of this channel.").set_footer(text="TRANSFER_INSIG_PERMS"))
                 return
             else:
                 matt_hancock = args[0][2:-1] # ty addison
                 if ( "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=_+[]{};':\",.<>/?" not in matt_hancock ) and ( int(matt_hancock) in [member.id for member in ctx.channel.members] ): # i'm fucking lazy
-                    cur.execute(f"INSERT INTO ownership VALUES ({ctx.channel.id}, {matt_hancock})")
-                    cur.execute(f"DELETE FROM ownership WHERE channel = {ctx.channel.id} AND owner = {ctx.author.id}")
+                    cur.execute(f"INSERT INTO ownership VALUES ('{ctx.channel.id}', '{matt_hancock}')")
+                    cur.execute(f"DELETE FROM ownership WHERE channel = '{ctx.channel.id}' AND owner = '{ctx.author.id}'")
                     con.commit()
                     await ctx.send(embed=discord.Embed(title="Vive la France !", description=f"""Ownership of <#{ctx.channel.id}> has been transferred from <@{ctx.author.id}> to <@{matt_hancock}>
 Allons enfant de la patrie
@@ -206,17 +223,18 @@ Ils viennent jusque dans vos bras
                 await ctx.send(embed=discord.Embed(title="Error", description="No user provided. (Ping the new owner!)").set_footer(text="PROMOTE_NO_ARG"))
                 return
             try:
-                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
-            except sqlite3.OperationalError:
+                cur.execute(f"SELECT owner FROM ownership WHERE channel='{ctx.channel.id}'")
+            except psycopg2.Error:
+                con.rollback()
                 await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="PROMOTE_SQL_FAIL"))
                 return
-            if str(ctx.author.id) not in sum(list(owners), ()):
+            if str(ctx.author.id) not in [s.strip() for s in sum(list(cur), ())]:
                 await ctx.send(embed=discord.Embed(title="Error", description="You're not the owner of this channel.").set_footer(text="PROMOTE_INSIG_PERMS"))
                 return
             else:
                 matt_hancock = args[0][2:-1]
                 if ( "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=_+[]{};':\",.<>/?" not in matt_hancock ) and ( int(matt_hancock) in [member.id for member in ctx.channel.members] ):
-                    cur.execute(f"INSERT INTO ownership VALUES ({ctx.channel.id}, {matt_hancock})")
+                    cur.execute(f"INSERT INTO ownership VALUES ('{ctx.channel.id}', '{matt_hancock}')")
                     con.commit()
                     await ctx.send(embed=discord.Embed(title="Level up!", description=f"<@{ctx.author.id}> has promoted <@{matt_hancock}> to owner of <#{ctx.channel.id}>!"))
                     await client.get_user(int(matt_hancock)).send(embed=discord.Embed(title="Mafia boss??", description=f"You have been promoted to owner of {ctx.channel.name} by {ctx.author.name}#{ctx.author.discriminator}. Oh yeah."))
@@ -227,16 +245,17 @@ Ils viennent jusque dans vos bras
         @commands.command()
         async def resign(self, ctx, *args):
             try:
-                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
-            except sqlite3.OperationalError:
+                cur.execute(f"SELECT owner FROM ownership WHERE channel='{ctx.channel.id}'")
+            except psycopg2.Error:
+                con.rollback()
                 await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="RESIGN_SQL_FAIL"))
                 return
-            owners = sum(list(owners), ())
+            owners = [s.strip() for s in sum(list(cur), ())]
             if str(ctx.author.id) not in owners:
                 await ctx.send(embed=discord.Embed(title="Error", description="You're not the owner of this channel.").set_footer(text="RESIGN_INSIG_PERMS"))
                 return
             elif len(owners) > 1: # cannot resign if only owner
-                cur.execute(f"DELETE FROM ownership WHERE channel = {ctx.channel.id} AND owner = {ctx.author.id}")
+                cur.execute(f"DELETE FROM ownership WHERE channel = '{ctx.channel.id}' AND owner = '{ctx.author.id}'")
                 con.commit()
                 await ctx.send(embed=discord.Embed(title="Bye bye!", description=f"<@{ctx.author.id}> resigned as owner of <#{ctx.channel.id}>."))
                 await ctx.author.send(embed=discord.Embed(title="The better person", description=f"You have stepped down as owner of {ctx.channel.name}. I'm proud of you."))
@@ -287,11 +306,12 @@ Ils viennent jusque dans vos bras
                 await ctx.send(embed=discord.Embed(title="Error", description="No user provided. Tag the user!").set_footer(text="REMOVE_NO_ARG"))
                 return
             try:
-                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
-            except sqlite3.OperationalError:
+                cur.execute(f"SELECT owner FROM ownership WHERE channel='{ctx.channel.id}'")
+            except psycopg2.Error:
+                con.rollback()
                 await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="REMOVE_SQL_FAIL"))
                 return
-            if str(ctx.author.id) not in sum(list(owners), ()):
+            if str(ctx.author.id) not in [s.strip() for s in sum(list(cur), ())]:
                 await ctx.send(embed=discord.Embed(title="Error", description="You're not the owner of this channel.").set_footer(text="REMOVE_INSIG_PERMS"))
                 return
             else:
@@ -319,11 +339,12 @@ Ils viennent jusque dans vos bras
                 await ctx.send(embed=discord.Embed(title="Error", description="What should I change? (No attribute provided.)").set_footer(text="CHANGE_NO_ARG"))
                 return
             try:
-                owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
-            except sqlite3.OperationalError:
+                cur.execute(f"SELECT owner FROM ownership WHERE channel='{ctx.channel.id}'")
+            except psycopg2.Error:
+                con.rollback()
                 await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="CHANGE_SQL_FAIL"))
                 return
-            if str(ctx.author.id) not in sum(list(owners), ()):
+            if str(ctx.author.id) not in [s.strip() for s in sum(list(cur), ())]:
                 await ctx.send(embed=discord.Embed(title="Error", description="You're not the owner of this channel.").set_footer(text="CHANGE_INSIG_PERMS"))
                 return
             args = list(args)
@@ -380,11 +401,12 @@ Ils viennent jusque dans vos bras
                     await ctx.send(embed=discord.Embed(title=f"{ctx.channel.name} - members", description="\n".join(["<@" + str(member.id) + ">" for member in ctx.channel.members if not member.guild_permissions.administrator])))
                 case "owners":
                     try:
-                        owners = cur.execute(f"SELECT owner FROM ownership WHERE channel={ctx.channel.id}")
-                    except sqlite3.OperationalError:
+                        cur.execute(f"SELECT owner FROM ownership WHERE channel='{ctx.channel.id}';")
+                    except psycopg2.Error:
+                        con.rollback()
                         await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="SHOW_SQL_FAIL"))
                         return
-                    await ctx.send(embed=discord.Embed(title=f"{ctx.channel.name} - owners", description="\n".join(["<@" + owner + ">" for owner in sum(list(owners), ())])))
+                    await ctx.send(embed=discord.Embed(title=f"{ctx.channel.name} - owners", description="\n".join(["<@" + owner.strip() + ">" for owner in sum(list(cur), ())])))
                 case "chain":
                     pass
                 case _:
@@ -413,9 +435,13 @@ Ils viennent jusque dans vos bras
         @commands.command()
         @commands.is_owner()
         async def query(self, ctx):
-            response = cur.execute("SELECT owner FROM ownership WHERE channel=987850096970457158")
-            print(sum(list(response), ()))
-            await ctx.send("\N{OK HAND SIGN}")
+            try:
+                cur.execute(f"SELECT channel FROM ownership WHERE owner='{ctx.author.id}';")
+            except psycopg2.Error as e:
+                con.rollback()
+                await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="CREATE_SQL_FAIL"))
+                return
+            print(len(list(cur)))
 
     client.add_cog(UserChannels(client))
 

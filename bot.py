@@ -52,12 +52,44 @@ async def help(ctx):
     print("Received command help")
     embed=discord.Embed(title="You need help?", description="", color=0x489d9c)
     embed.add_field(name="Prefixes", value="`jerome, `, `j `\ne.g. `jerome, search Boku no Pico`", inline=False)
-    embed.add_field(name="Commands", value="""\> `help` - shows this message.
+    embed.add_field(name="Commands", value="""\> `help` - shows this message.""", inline=False)
+    embed.add_field(name="MAL", value="""These are commands that help with querying MyAnimeList (MAL).
 \> `search <query>` or `s <query>` - searches `<query>` on MAL. Can be a name of a show or an ID. Numbers `like this` are MAL IDs.
 \> `searchname <query>`, `sname <query>`, or `sn <query>` - forces name search.
 \> `searchid <query>`, `sid <query>`, or `si <query>` - forces ID search.
-\> `list <username>` or `l <username>` - shows <username>'s list.""", inline=False)
-    embed.add_field(name="Features", value=f"""*Plainping*
+\> `list <username>` or `l <username>` - shows <username>'s list.
+""", inline=False)
+    embed.add_field(name="USER CHANNELS", value="""User channels are essentially Discord DMs on Jerome's but without the dumb 10 person cap. Start your own by typing `jerome, create my-cool-channel`!
+`#<channel>` or `@<user>` indicate that you must ping the channel or user. `<channel>` or `<user>` indicate that you mustn't.
+
+*Managing your user channel*
+**\> `create <channel> as <type>` or `cr <channel> <type>`** - creates a new user channel called `<channel>`. `<type>` can either be `text` or `voice`.
+**\> `delete #<channel>`** - deletes the user channel called `#<channel>`. *Destructive!*
+**\> `archive #<channel>`** - archives the user channel called `#<channel>` and sends a download link to all members. *Destructive!*
+""", inline=False)
+    embed.add_field(name="\u200b", value="""
+**\> `add <user>` or `a <user>`** - adds `<user>` as a member of the user channel.
+**\> `leave`** - leaves the user channel.
+**\> `remove @<user>` or `r @<user>`** - removes `@<user>` as a member of the user channel.
+**\> `transfer @<user>`** - transfers ownership of the user channel to `@<user>`. *Destructive!*
+**\> `promote @<user>`** - promotes `@<user>` to an owner of the user channel. *Destructive!*
+**\> `resign`** - resign as owner of the user channel. *Destructive!*
+""", inline=False)
+    embed.add_field(name="\u200b", value="""
+*Customising your user channel*
+Discord offers four `<attribute>`s you can change about your channel. *Note that these are heavily rate limited. Changing these too quickly can break your channel.*
+`name`: The channel name.
+`description`: The channel description.
+`slowmode`: The channel slowmode delay. Set this value to `0` to disable slowmode.
+`nsfw`: The channel NSFW status. *If you have not verified your age, changing this setting can break your channel! Be careful!*
+**\> `change <attribute> to <value>` or `ch <attribute> <value>`** - changes the channel `<attribute>` to `<value>`.
+Further `<attributes>` (cannot be changed using `change`):
+`members`: The members in the user channel.
+`owners`: The owners of the user channel.
+`links`: The chain and the channels in the chain of the user channel.
+**\> `show <attribute>` or `sh <attribute>`** - shows the current value of `<attribute>`.
+""", inline=False)
+    embed.add_field(name="Helpful stuff", value=f"""*Plainping*
 Ever wanted to ping someone but forgot their discord tag? Just type @[real name] and Jerome's expertly curated database pulled from <#{os.environ["whoswho"]}> will ping that user for you!""", inline=False)
     await ctx.send(embed=embed)
 
