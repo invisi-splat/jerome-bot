@@ -15,7 +15,7 @@ def setup(client):
 
     DATABASE_URL = os.environ['DATABASE_URL']
 
-    con = psycopg2.connect(DATABASE_URL, sslmode='require')
+    con = psycopg2.connect(DATABASE_URL)#, sslmode='require')
     cur = con.cursor()
 
     try:
@@ -211,7 +211,7 @@ Mugir ces féroces (soldats) soldats
 Ils viennent jusque dans vos bras
 Égorger vos fils et vos compagnes
 """))
-                    await ctx.author.send(embed=discord.Embed(title="You have transferred your power", description=f"You have transferred your ownership of {ctx.channel.name} to {client.get_user(matt_hancock).name}. Vive la révolution !!"))
+                    await ctx.author.send(embed=discord.Embed(title="You have transferred your power", description=f"You have transferred your ownership of {ctx.channel.name} to {client.get_user(int(matt_hancock)).name}. Vive la révolution !!"))
                     await client.get_user(int(matt_hancock)).send(embed=discord.Embed(title="You have been transferred power", description=f"You have been transferred ownership of {ctx.channel.name} from {ctx.author.name}#{ctx.author.discriminator}. Vive la révolution !!"))
                 else:
                     await ctx.send(embed=discord.Embed(title="Error", description="Invalid user, or this user is not in this user channel. (Ping the new owner!)").set_footer(text="TRANSFER_INV_USER"))
@@ -291,13 +291,29 @@ Ils viennent jusque dans vos bras
         @commands.command(aliases=["lv"])
         async def leave(self, ctx):
             print("Leave command received.")
+            try:
+                cur.execute(f"SELECT owner FROM ownership WHERE channel='{ctx.channel.id}'")
+            except psycopg2.Error:
+                con.rollback()
+                await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="LEAVE_SQL_FAIL"))
+                return
+            owners = [s.strip() for s in sum(list(cur), ())]
+            if str(ctx.author.id) in owners and len(owners) > 1:
+                cur.execute(f"DELETE FROM ownership WHERE channel = '{ctx.channel.id}' AND owner = '{ctx.author.id}'")
+                con.commit()
+                await ctx.send(embed=discord.Embed(title="Bye bye!", description=f"<@{ctx.author.id}> resigned as owner of <#{ctx.channel.id}>."))
+                await ctx.author.send(embed=discord.Embed(title="The better person", description=f"You have stepped down as owner of {ctx.channel.name}. I'm proud of you."))
+                return
+            elif str(ctx.author.id) in owners: # cannot resign if only owner
+                await ctx.send(embed=discord.Embed(title="Error", description="You can't leave if you're the only owner! (Power vacuums aren't fun!)").set_footer(text="LEAVE_ONLY_OWNER"))
+                return
             if ctx.channel.type == discord.ChannelType.text:
                 await ctx.channel.set_permissions(ctx.author, read_messages=False, send_messages=False)
             elif ctx.channel.type == discord.ChannelType.voice:
                 await ctx.channel.set_permissions(ctx.author, view_channel=False, send_messages=False, connect=False)
             await ctx.send(embed=discord.Embed(title="Someone just left...", description=f"<@{ctx.author.id}> has left the user channel. Damn."))
             await ctx.author.send(embed=discord.Embed(title="You have left a user channel", description=f"You have voluntarily left {ctx.channel.name}. I hope that was the right decision!"))
-            return
+
 
         @commands.command(aliases=["r"])
         async def remove(self, ctx, *args):
@@ -435,13 +451,8 @@ Ils viennent jusque dans vos bras
         @commands.command()
         @commands.is_owner()
         async def query(self, ctx):
-            try:
-                cur.execute(f"SELECT channel FROM ownership WHERE owner='{ctx.author.id}';")
-            except psycopg2.Error as e:
-                con.rollback()
-                await ctx.send(embed=discord.Embed(title="Error", description="There was an error with either the database or your query.").set_footer(text="CREATE_SQL_FAIL"))
-                return
-            print(len(list(cur)))
+            thing = [1, 2, 3]
+            thing[4] # this should throw an error
 
     client.add_cog(UserChannels(client))
 
