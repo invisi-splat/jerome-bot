@@ -22,7 +22,7 @@ statusify = {"watching": "Watching", "completed": "Completed", "on_hold": "On Ho
 intents = discord.Intents.default()
 intents.members = True
 
-client = commands.Bot(command_prefix=["jerome, ", "j "], owner_ids=[458304698827669536, 583832173048496129, 987818986156740648], case_insensitive=True, intents=intents)
+client = commands.Bot(command_prefix=["jerome, ", "jerome,", "Jerome, ", "Jerome,", "j ", "J "], owner_ids=[458304698827669536, 583832173048496129, 987818986156740648], case_insensitive=True, intents=intents)
 
 with open("./config/config.json", "r") as data:
     config = json.loads(data.read())
