@@ -45,26 +45,39 @@ async def on_message(message):
     await client.process_commands(message)
 
 @client.command()
-async def help(ctx):
+async def help(ctx, *args):
     print("Received command help")
     embed=discord.Embed(title="You need help?", description="", colour=0x489d9c)
-    embed.add_field(name="Prefixes", value="`jerome, `, `j `\ne.g. `jerome, search Boku no Pico`", inline=False)
-    embed.add_field(name="Commands", value="""\> `help` - shows this message.""", inline=False)
-    embed.add_field(name="MAL", value="""These are commands that help with querying MyAnimeList (MAL).
+
+    if not args:
+        embed.add_field(name="Prefixes", value="`jerome, `, `j `\ne.g. **`jerome, search Attack on Titan`**", inline=False)
+        embed.add_field(name="Commands", value="""\> **`help`** - shows this message.
+For information on the other commands, type
+\> **`help MAL`** for MyAnimeList searching
+\> **`help user channels` or `help user`** for user channels.
+For a tutorial on setting up your own user channel, type **`j help setup`**""", inline=False)
+        embed.add_field(name="Helpful stuff", value=f"""*Plainping*
+Ever wanted to ping someone but forgot their discord tag? Just type @[real name] and Jerome's expertly curated database pulled from <#{os.environ["whoswho"]}> will ping that user for you!""", inline=False)
+    else:
+        match args[0].lower():
+            case "mal":
+                embed.add_field(name="MAL", value="""These are commands that help with querying MyAnimeList (MAL).
 \> `search <query>` or `s <query>` - searches `<query>` on MAL. Can be a name of a show or an ID. Numbers `like this` are MAL IDs.
 \> `searchname <query>`, `sname <query>`, or `sn <query>` - forces name search.
 \> `searchid <query>`, `sid <query>`, or `si <query>` - forces ID search.
-\> `list <username>` or `l <username>` - shows <username>'s list.
-""", inline=False)
-    embed.add_field(name="USER CHANNELS", value="""User channels are essentially Discord DMs on Jerome's but without the dumb 10 person cap. Start your own by typing `jerome, create my-cool-channel`!
+\> `list <username>` or `l <username>` - shows <username>'s list.""", inline=False)
+
+            case "user channels" | "user" | "uc" | "user ch":
+                embed.add_field(name="USER CHANNELS", value="""User channels are essentially Discord DMs on Jerome's but without the dumb 10 person cap. Start your own by typing `jerome, create my-cool-channel`!
 `#<channel>` or `@<user>` indicate that you must ping the channel or user. `<channel>` or `<user>` indicate that you mustn't.
 
-*Managing your user channel*
+__**Managing your user channel**__
+
 **\> `create <channel> as <type>` or `cr <channel> <type>`** - creates a new user channel called `<channel>`. `<type>` can either be `text` or `voice`.
 **\> `delete #<channel>`** - deletes the user channel called `#<channel>`. *Destructive!*
 **\> `archive #<channel>`** - archives the user channel called `#<channel>` and sends a download link to all members. *Destructive!*
 """, inline=False)
-    embed.add_field(name="\u200b", value="""
+                embed.add_field(name="\u200b", value="""
 **\> `add <user>` or `a <user>`** - adds `<user>` as a member of the user channel.
 **\> `leave`** - leaves the user channel.
 **\> `remove @<user>` or `r @<user>`** - removes `@<user>` as a member of the user channel.
@@ -72,8 +85,9 @@ async def help(ctx):
 **\> `promote @<user>`** - promotes `@<user>` to an owner of the user channel. *Destructive!*
 **\> `resign`** - resign as owner of the user channel. *Destructive!*
 """, inline=False)
-    embed.add_field(name="\u200b", value="""
-*Customising your user channel*
+                embed.add_field(name="\u200b", value="""
+__**Customising your user channel**__
+
 Discord offers four `<attribute>`s you can change about your channel. *Note that these are heavily rate limited. Changing these too quickly can break your channel.*
 `name`: The channel name.
 `description`: The channel description.
@@ -86,10 +100,26 @@ Further `<attributes>` (cannot be changed using `change`):
 `links`: The chain and the channels in the chain of the user channel.
 **\> `show <attribute>` or `sh <attribute>`** - shows the current value of `<attribute>`.
 """, inline=False)
-    embed.add_field(name="Helpful stuff", value=f"""*Plainping*
+
+            case "setup":
+                embed.add_field(name="Setting up your own user channel", value=f"""User channels are (thankfully) pretty simple to set up.
+
+First, create a user channel using the `create` command. We'll call our channel `bussin-dm`, so we type `j create bussin-dm`.
+Next, switch to the channel, and start adding friends! To do this, we need to use `add` and the *username* of the friend (because you can't ping people if they can't see a channel). Let's say we want to invite <@679983361774714891>. Then, we type `j add "Jerome The Snowman#6097"`. (You can find a person's full username by clicking on their profile and selecting and copy and pasting it across.)
+When you're done with a channel, use `delete` or `archive`! Remember to *ping the channel name*: if we wanted to delete this channel (for some reason) we want to type "j delete <#{ctx.channel.id}>", not "j delete #{ctx.channel.name}".
+
+For information on the rest of the commands, type `j help user`.""", inline=False)
+
+            case _:
+                embed.add_field(name="Prefixes", value="`jerome, `, `j `\ne.g. **`jerome, search Attack on Titan`**", inline=False)
+                embed.add_field(name="Commands", value="""\> **`help`** - shows this message.
+For information on the other commands, type
+\> **`help MAL`** for MyAnimeList searching
+\> **`help user channels` or `help user`** for user channels.
+For a tutorial on setting up your own user channel, type **`help setup`**""", inline=False)
+                embed.add_field(name="Helpful stuff", value=f"""**Plainping**
 Ever wanted to ping someone but forgot their discord tag? Just type @[real name] and Jerome's expertly curated database pulled from <#{os.environ["whoswho"]}> will ping that user for you!""", inline=False)
     await ctx.send(embed=embed)
-
 
 @client.command()
 @commands.is_owner()
