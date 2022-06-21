@@ -1,14 +1,11 @@
-import requests
-import sys
 import json
 import discord
 from discord.ext import commands, tasks
 import cmds.ping.ping
 import cmds.ping.refresh
 import os
-import asyncio
+from random_words import RandomWords
 import traceback
-import secrets
 
 # Check environment variables
 
@@ -50,7 +47,7 @@ async def on_message(message):
 @client.command()
 async def help(ctx):
     print("Received command help")
-    embed=discord.Embed(title="You need help?", description="", color=0x489d9c)
+    embed=discord.Embed(title="You need help?", description="", colour=0x489d9c)
     embed.add_field(name="Prefixes", value="`jerome, `, `j `\ne.g. `jerome, search Boku no Pico`", inline=False)
     embed.add_field(name="Commands", value="""\> `help` - shows this message.""", inline=False)
     embed.add_field(name="MAL", value="""These are commands that help with querying MyAnimeList (MAL).
@@ -119,5 +116,23 @@ async def on_message(msg):
     if "@" in msg.clean_content and msg.author != client.user:
         await cmds.ping.ping.ping(client, msg)
     await client.process_commands(msg)
+
+@client.event
+async def on_command_error(ctx, error):
+    filename = RandomWords().random_word()
+    error_msg = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+    async with ctx.typing():
+        with open(filename+".txt", "w") as data:
+            data.write(error_msg)
+            data.close
+        with open(filename+".txt", "rb") as data:
+            await ctx.send(embed=discord.Embed(
+                title="Undefined error!",
+                description="Something terribly wrong has happened! Please send <@458304698827669536> the text file above.", colour=0xff2727
+                ).set_footer(text="YIKES_THATS_BAD"),
+                file=discord.File(data, filename+".txt"))
+        os.remove(filename+".txt")
+    return
+
 
 client.run(os.environ["token"])
