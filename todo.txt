@@ -1,4 +1,0 @@
-- add a command to search someone’s list
-- add a command to be able to add to your own list through the bot
-- allow recursive searching through the embed
-- perhaps anilist functionality
