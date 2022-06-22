@@ -115,6 +115,9 @@ This message was sent here because there was an error DMing you."""))
                     new_channel = await self.category.create_voice_channel(args[0], reason=f"User channel created by {ctx.author.name}#{ctx.author.discriminator}")
                     await new_channel.set_permissions(ctx.guild.default_role, view_channel=False, send_messages=False, connect=False)
                     await new_channel.set_permissions(ctx.author, view_channel=True, send_messages=True, connect=True)
+                else:
+                    await ctx.send(embed=discord.Embed(title="Error", description="Either that's not a valid channel type, or you've put a space in your channel name. Both are bad! Don't do that!").set_footer(text="CREATE_BAD_ARG"))
+                    return
             except IndexError: # create text channel by default
                 new_channel = await self.category.create_text_channel(args[0], reason=f"User channel created by {ctx.author.name}#{ctx.author.discriminator}")
                 await new_channel.set_permissions(ctx.guild.default_role, read_messages=False, send_messages=False)
